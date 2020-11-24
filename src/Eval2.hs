@@ -4,6 +4,7 @@ module Eval2
   )
 where
 
+import qualified Eval1                         as Eval1
 import           AST
 import           Monads
 import qualified Data.Map.Strict               as M
@@ -35,11 +36,14 @@ instance Applicative StateError where
 
 -- Ejercicio 2.a: Dar una instancia de Monad para StateError:
 instance Monad StateError where
-  return x = undefined
-  m >>= f = undefined
+  return x = StateError (\s -> Right (x :!: s))
+  m >>= f = StateError (\s -> runStateError m s >>= \(v :!: s') -> runStateError (f v) s')
 
 -- Ejercicio 2.b: Dar una instancia de MonadError para StateError:
--- COMPLETAR
+
+instance MonadError StateError where
+  throw e = StateError (\s -> Left e)
+
 
 -- Ejercicio 2.c: Dar una instancia de MonadState para StateError:
 -- COMPLETAR
@@ -55,10 +59,30 @@ stepCommStar Skip = return ()
 stepCommStar c    = stepComm c >>= \c' -> stepCommStar c'
 
 -- Evalua un paso de un comando
-stepComm :: (MonadState m, MonadError m) => Comm -> m Comm
-stepComm = undefined
+stepComm :: MonadState m => Comm -> m Comm
+stepComm Skip = return Skip
+stepComm (Let v e) = 
+    do
+        r <- evalExp e 
+        update v r
+        return Skip
+stepComm (Seq Skip c2) = stepComm c2
+stepComm (Seq c1 c2) = stepComm c1 >>= \c1' -> return (Seq c1' c2)
+stepComm (IfThenElse e cthen celse) =
+    evalExp e >>= \r -> return (if r then cthen else celse)
+stepComm w@(While e c) =
+    evalExp e >>= \r -> return (if r then Seq c w else Skip)
+
 
 -- Evalua una expresion
 evalExp :: (MonadState m, MonadError m) => Exp a -> m a
-evalExp = undefined
-
+-- TODO falta el caso en que se encuentre
+evalExp (Var x) = throw UndefVar
+evalExp (Div x y) = 
+    do 
+        x' <- evalExp x
+        y' <- evalExp y
+        if y' == 0 
+            then throw DivByZero
+            else return (x' `div` y')
+evalExp exp = Eval1.evalExp exp

@@ -1,6 +1,7 @@
 module Eval1
   ( eval
-  , Env
+  , Env,
+  evalExp
   )
 where
 
