@@ -59,7 +59,7 @@ stepComm :: MonadState m => Comm -> m Comm
 stepComm Skip = return Skip
 stepComm (Let v e) = 
     do
-        evalExp e 
+        r <- evalExp e 
         update v r
         return Skip
 stepComm (Seq Skip c2) = stepComm c2
