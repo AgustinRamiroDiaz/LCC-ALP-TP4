@@ -56,13 +56,18 @@ stepCommStar c    = stepComm c >>= \c' -> stepCommStar c'
 
 -- Evalua un paso de un comando
 stepComm :: MonadState m => Comm -> m Comm
---stepComm Skip = return ()
---stepComm (Let v e) = evalExp e >>= \r -> update v r
--- Capaz hay que hacer un case por si es skip
+stepComm Skip = return Skip
+stepComm (Let v e) = 
+    do
+        evalExp e 
+        update v r
+        return Skip
+stepComm (Seq Skip c2) = stepComm c2
 stepComm (Seq c1 c2) = stepComm c1 >>= \c1' -> return (Seq c1' c2)
 stepComm (IfThenElse e cthen celse) =
     evalExp e >>= \r -> return (if r then cthen else celse)
--- stepComm (While e c) =
+stepComm w@(While e c) =
+    evalExp e >>= \r -> return (if r then Seq c w else Skip)
 
 
 -- Evalua una expresion
