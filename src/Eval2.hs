@@ -23,7 +23,7 @@ initEnv = M.empty
 
 -- Mónada estado, con manejo de errores
 newtype StateError a =
-  StateError { runStateError :: Env -> Either Error ( Pair a Env) }
+  StateError { runStateError :: Env -> Either Error (Pair a Env) }
 
 
 -- Para calmar al GHC
@@ -42,16 +42,21 @@ instance Monad StateError where
 -- Ejercicio 2.b: Dar una instancia de MonadError para StateError:
 
 instance MonadError StateError where
-  throw e = StateError (\s -> Left e)
-
+  throw e = StateError (\_ -> Left e)
 
 -- Ejercicio 2.c: Dar una instancia de MonadState para StateError:
--- COMPLETAR
+instance MonadState StateError where
+  -- TODO: lookfor deberia usar throw, creo (?)
+  lookfor v = StateError (lookfor' v)
+    where lookfor' v s = case M.lookup v s of Nothing -> Left UndefVar
+                                              Just x -> Right (x :!: s)
+  update v i = StateError (\s -> Right (() :!: update' v i s))
+    where update' = M.insert
 
 -- Ejercicio 2.d: Implementar el evaluador utilizando la monada StateError.
 -- Evalua un programa en el estado nulo
 eval :: Comm -> Either Error Env
-eval = undefined
+eval p = runStateError (stepCommStar p) initEnv >>= \(() :!: s) -> return s
 
 -- Evalua multiples pasos de un comando, hasta alcanzar un Skip
 stepCommStar :: (MonadState m, MonadError m) => Comm -> m ()
@@ -59,11 +64,11 @@ stepCommStar Skip = return ()
 stepCommStar c    = stepComm c >>= \c' -> stepCommStar c'
 
 -- Evalua un paso de un comando
-stepComm :: MonadState m => Comm -> m Comm
+stepComm :: (MonadState m, MonadError m) => Comm -> m Comm
 stepComm Skip = return Skip
-stepComm (Let v e) = 
+stepComm (Let v e) =
     do
-        r <- evalExp e 
+        r <- evalExp e
         update v r
         return Skip
 stepComm (Seq Skip c2) = stepComm c2
@@ -76,13 +81,11 @@ stepComm w@(While e c) =
 
 -- Evalua una expresion
 evalExp :: (MonadState m, MonadError m) => Exp a -> m a
--- TODO falta el caso en que se encuentre
-evalExp (Var x) = throw UndefVar
-evalExp (Div x y) = 
-    do 
+evalExp (Div x y) =
+    do
         x' <- evalExp x
         y' <- evalExp y
-        if y' == 0 
+        if y' == 0
             then throw DivByZero
             else return (x' `div` y')
-evalExp exp = Eval1.evalExp exp
+evalExp e = Eval1.evalExp e
