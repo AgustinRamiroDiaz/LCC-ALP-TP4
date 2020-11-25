@@ -78,7 +78,6 @@ stepComm (IfThenElse e cthen celse) =
 stepComm w@(While e c) =
     evalExp e >>= \r -> return (if r then Seq c w else Skip)
 
-
 -- Evalua una expresion
 evalExp :: (MonadState m, MonadError m) => Exp a -> m a
 evalExp (Div x y) =
@@ -88,4 +87,4 @@ evalExp (Div x y) =
         if y' == 0
             then throw DivByZero
             else return (x' `div` y')
-evalExp e = Eval1.evalExp e
+evalExp e = Eval1.evalExp e -- TODO: consultar
