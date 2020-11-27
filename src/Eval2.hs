@@ -4,7 +4,6 @@ module Eval2
   )
 where
 
-import qualified Eval1                         as Eval1
 import           AST
 import           Monads
 import qualified Data.Map.Strict               as M
@@ -80,6 +79,25 @@ stepComm w@(While e c) =
 
 -- Evalua una expresion
 evalExp :: (MonadState m, MonadError m) => Exp a -> m a
+-- Int
+evalExp (Const x) = return x
+evalExp (Var x) = lookfor x
+evalExp (UMinus x) = evalExp x >>= \y -> return (-y)
+evalExp (Plus x y) =
+    do
+        x' <- evalExp x
+        y' <- evalExp y
+        return (x' + y')
+evalExp (Minus x y) =
+    do
+        x' <- evalExp x
+        y' <- evalExp y
+        return (x' - y')
+evalExp (Times x y) =
+    do
+        x' <- evalExp x
+        y' <- evalExp y
+        return (x' * y')
 evalExp (Div x y) =
     do
         x' <- evalExp x
@@ -87,4 +105,43 @@ evalExp (Div x y) =
         if y' == 0
             then throw DivByZero
             else return (x' `div` y')
-evalExp e = Eval1.evalExp e -- TODO: consultar
+-- Bool
+evalExp BTrue = return True
+evalExp BFalse = return False
+evalExp (Lt x y) =
+    do
+        x' <- evalExp x
+        y' <- evalExp y
+        return (x' < y')
+evalExp (Gt x y) =
+    do
+        x' <- evalExp x
+        y' <- evalExp y
+        return (x' > y')
+evalExp (And x y) =
+    do
+        x' <- evalExp x
+        y' <- evalExp y
+        return (x' && y')
+evalExp (Or x y) =
+    do
+        x' <- evalExp x
+        y' <- evalExp y
+        return (x' || y')
+evalExp (Not x) = evalExp x >>= \y -> return (not y)
+evalExp (Eq x y) =
+    do
+        x' <- evalExp x
+        y' <- evalExp y
+        return (x' == y')
+evalExp (NEq x y) =
+    do
+        x' <- evalExp x
+        y' <- evalExp y
+        return (x' /= y')
+evalExp (EAssgn v exp) =
+    do
+        r <- evalExp exp
+        update v r
+        return r
+evalExp (ESeq e1 e2) = evalExp e1 >> evalExp e2
