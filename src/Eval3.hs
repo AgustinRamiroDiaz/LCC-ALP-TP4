@@ -51,7 +51,6 @@ instance MonadError StateErrorCost where
 
 -- Ejercicio 3.e: Dar una instancia de MonadState para StateErrorCost.
 instance MonadState StateErrorCost where
-  -- TODO: lookfor deberia usar throw, creo (?)
   lookfor v = StateErrorCost (lookfor' v)
     where lookfor' v s = case M.lookup v s of Nothing -> Left UndefVar
                                               Just x -> Right (x :!: (s, 0))
@@ -84,7 +83,6 @@ stepComm w@(While e c) =
     evalExp e >>= \r -> return (if r then Seq c w else Skip)
 
 -- Evalua una expresion 
--- evalIntExp :: [dar el tipo segun corresponda]
 evalExp :: (MonadState m, MonadError m, MonadCost m) => Exp a -> m a
 -- Int
 evalExp (Const x) = return x

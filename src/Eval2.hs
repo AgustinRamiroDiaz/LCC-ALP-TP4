@@ -45,7 +45,6 @@ instance MonadError StateError where
 
 -- Ejercicio 2.c: Dar una instancia de MonadState para StateError:
 instance MonadState StateError where
-  -- TODO: lookfor deberia usar throw, creo (?)
   lookfor v = StateError (lookfor' v)
     where lookfor' v s = case M.lookup v s of Nothing -> Left UndefVar
                                               Just x -> Right (x :!: s)
