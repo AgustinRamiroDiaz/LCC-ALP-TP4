@@ -63,7 +63,7 @@ eval :: Comm -> Either Error (Env, Cost)
 eval p = runStateErrorCost (stepCommStar p) initEnv >>= \(() :!: s) -> return s
 
 -- Evalua multiples pasos de un comando, hasta alcanzar un Skip
--- stepCommStar :: [dar el tipo segun corresponda]
+stepCommStar :: (MonadState m, MonadError m, MonadCost m) => Comm -> m ()
 stepCommStar Skip = return ()
 stepCommStar c    = stepComm c >>= \c' -> stepCommStar c'
 
